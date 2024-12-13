@@ -1,0 +1,13 @@
+name: layer2.tap
+attributes:
+    depends:
+        - graph
+    provides:
+        - tap
+model_components:
+    depends:
+        - layer2.ovs
+        - base_objects
+        - generic_vm_objects
+plugin: plugin.py
+model_component_objects: model_component_objects.py

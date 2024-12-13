@@ -1,0 +1,137 @@
+#!/bin/bash
+
+#######################################################
+# This is a sample install file for layer2.ovs.
+# This file can be used to perform one-time actions
+# which help prepare the model component for use.
+#
+# Common uses of INSTALL files include downloading
+# VM Resources from the Internet and installing new
+# Python packages into FIREWHEEL's virtual environment.
+#
+# NOTE: When you are creating these files, it is
+# imperative that specific versions of software are
+# used. Without being as specific as possible,
+# experimental results will **NOT** be repeatable.
+# We strongly recommend that any changes to software
+# versions are accompanied by a warning and new model
+# component version.
+#######################################################
+
+# Create a flag for verifying installation
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+INSTALL_FLAG=$SCRIPT_DIR/.layer2.ovs.installed
+
+#######################################################
+# Checking if there this script has already been complete.
+#######################################################
+function check_flag() {
+    if [[ -f "$INSTALL_FLAG" ]]; then
+        echo >&2 "layer2.ovs is already installed!"
+        exit 117;  # Structure needs cleaning
+    fi
+}
+
+
+#######################################################
+# Install python packages into the virtual environment
+# used by FIREWHEEL. This takes in an array of packages.
+#######################################################
+function install_python_package() {
+    pkgs=("$@")
+    for i in "${pkgs[@]}";
+    do
+        python -m pip install "$i"
+    done
+}
+
+
+#######################################################
+# Download using wget and then checksum the downloaded files.
+#
+# It is important to verify that the downloaded files
+# are the files are the same ones as expected.
+# This function provides an outline of how to checksum files,
+# but will need to be updated with the specific hashes/file names
+# that have been downloaded.
+#
+# This function assumes that the passed in hashes are SHA-256
+#######################################################
+function wget_and_checksum() {
+    downloads=("$@")
+    # Uses 2D arrays in bash: https://stackoverflow.com/a/44831174
+    declare -n d
+    for d in "${downloads[@]}";
+    do
+        wget "${d[0]}"
+        echo "${d[1]}  ${d[2]}" | shasum -a 256 --check
+    done
+}
+
+
+#######################################################
+# A function to help users clean up a partial installation
+# in the event of an error.
+#######################################################
+function cleanup() {
+    echo "Cleaning up layer2.ovs install"
+    # TODO: Cleanup any downloaded files
+    # rm -rf file.tar
+    rm -rf $INSTALL_FLAG
+    exit 1
+}
+trap cleanup ERR
+
+# Start to run the script
+
+# Ensure we only complete the script once
+check_flag
+
+#######################################################
+# Uncomment if there are Pip packages to install
+# `pip_packages` should be space separated strings of
+# the packages to install
+#######################################################
+# pip_packages=("requests" "pandas")
+# install_python_package "${pip_packages[@]}"
+
+
+#######################################################
+# Uncomment if there is data/VM resources/images to download.
+# `file1`, `file2`, etc. should be space separated strings of
+# (URL SHASUM-256 FILENAME).
+#
+# We recommend that explicit versions are used for all Images/VMRs to prevent
+# possible differences between instances of a given Model Component.
+# Please be mindful of the software versions as it can have unintended
+# consequences on your Emulytics experiment.
+#
+# We require checksums of the files to assist users in verifying
+# that they have downloaded the same version.
+#######################################################
+# Be sure to use SHA-256 hashes for the checksums (e.g. shasum -a 256 <file>)
+file1=("https://mirror.cs.uchicago.edu/ubuntu/pool/main/o/openvswitch/openvswitch-common_2.5.9-0ubuntu0.16.04.3_amd64.deb" "4196971b94d428a411f158a95983733d36ec603879551b8b7e4ff1403b69bce6" "openvswitch-common_2.5.9-0ubuntu0.16.04.3_amd64.deb")
+file2=("https://mirror.cs.uchicago.edu/ubuntu/pool/main/o/openvswitch/openvswitch-switch_2.5.9-0ubuntu0.16.04.3_amd64.deb" "bd3cbc6600f190abd1e8fd9d26d65f2a03356ce3a9a8376bc77aa06695cc899e" "openvswitch-switch_2.5.9-0ubuntu0.16.04.3_amd64.deb")
+file3=("http://launchpadlibrarian.net/238247204/python-six_1.10.0-3_all.deb" "b126333e5fc21d97ceda0ca1b839093657aa4a0f90d5fca198359b583314e54d" "python-six_1.10.0-3_all.deb")
+files=(file1 file2 file3)
+wget_and_checksum "${files[@]}"
+echo "Downloaded and checksummed all files!"
+
+
+#######################################################
+# Add any other desired configuration/packaging here
+#######################################################
+# Compress debs into single package
+pkg_dir=openvswitch-switch
+mkdir -p $pkg_dir
+mv openvswitch-common_2.5.9-0ubuntu0.16.04.3_amd64.deb $pkg_dir
+mv openvswitch-switch_2.5.9-0ubuntu0.16.04.3_amd64.deb $pkg_dir
+mv python-six_1.10.0-3_all.deb $pkg_dir
+
+tar -czvf "${pkg_dir}.tgz" $pkg_dir
+mv "${pkg_dir}.tgz" vm_resources
+rm -rf $pkg_dir
+rm -rf *.deb
+
+# Set the flag to notify of successful completion
+touch $INSTALL_FLAG

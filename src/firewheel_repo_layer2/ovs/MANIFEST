@@ -1,0 +1,12 @@
+name: layer2.ovs
+attributes:
+    depends:
+        - graph
+    provides: []
+model_components:
+    depends:
+        - linux.ubuntu1604
+        - base_objects
+model_component_objects: model_component_objects.py
+vm_resources:
+    - vm_resources/*

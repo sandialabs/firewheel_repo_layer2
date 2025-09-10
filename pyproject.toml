@@ -11,7 +11,7 @@ authors = [
 description = "This repository contains FIREWHEEL Model Components for enabling layer-2 networking within an experiment."
 readme = "README.rst"
 dependencies = [
-  "firewheel",
+  "firewheel>=2.9.0",
   "firewheel-repo-base",
   "firewheel-repo-linux",
 ]
